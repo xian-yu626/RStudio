@@ -1,0 +1,379 @@
+---
+title: "A2"
+author: "Max"
+date: "2023-10-06"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+## 1.1 (Q1)
+
+```{r}
+# Load the tidyverse package
+library(tidyverse)
+
+# Load the Stat2Data package and the Hawks dataset
+library(Stat2Data)
+data("Hawks")
+
+# Create the hSF data frame
+hSF <- Hawks %>%
+  filter(Species == "RT", Weight >= 1000) %>%
+  select(Wing, Weight, Tail)
+
+# Display the first few rows of the resulting data frame
+head(hSF)
+
+```
+## 1.1(Q2)
+The data frame hSF has 3 variables.
+frame contains 398 examples or observations
+
+## 1.2
+```{r}
+# Sort the hSF data frame by increasing wing span
+hSF_sorted <- hSF %>%
+  arrange(Wing)
+
+# Display the top five rows of the sorted data frame
+head(hSF_sorted)
+
+```
+
+## 1.3(Q1)
+```{R}
+# Create the hawkSpeciesNameCodes data frame
+hawkSpeciesNameCodes <- data.frame(species_code = c("CH", "RT", "SS"),
+                                   species_name_full = c("Cooper's", "Red-tailed", "Sharp-shinned")
+
+)
+
+```
+## 1.3(Q2)
+```{R}
+
+hawksFullName <- Hawks %>%
+  left_join(hawkSpeciesNameCodes, by = c("Species" = "species_code")) %>%
+  select(-Species) %>%
+  rename(Species = species_name_full)
+
+
+
+```
+## 1.3(Q3)
+```{R}
+hawksFullName %>%
+  select(Species, Wing, Weight) %>%
+  head(7)
+
+
+```
+
+## 1.4
+```{R}
+
+# Calculate bird BMI and create the hawksWithBMI data frame
+hawksWithBMI <- Hawks %>%
+  mutate(bird_BMI = 1000 * Weight / (Wing^2)) %>%
+  select(Species, bird_BMI) %>%
+  arrange(desc(bird_BMI))
+
+# Display the top 8 rows of the hawksWithBMI data frame
+head(hawksWithBMI, 8)
+
+```
+
+## 1.5(Q1)
+```{R}
+
+# Group by Species and calculate the summary quantities
+summary_table <- hawksFullName %>%
+  group_by(Species) %>%
+  summarize(
+    num_rows = n(),                            # Number of rows
+    mn_wing = mean(Wing, na.rm = TRUE),        # Mean wing span
+    md_wing = median(Wing, na.rm = TRUE),      # Median wing span
+    t_mn_wing = mean(Wing, trim = 0.1, na.rm = TRUE),  # Trimmed mean wing span
+    b_wt_ratio = max(Wing / Weight, na.rm = TRUE)  # Biggest ratio between wing span and weight
+  )
+
+# Print the summary table
+print(summary_table)
+
+
+```
+## 1.5(Q2)
+```{r}
+# Define the columns you want to analyze
+selected_columns <- c("Wing", "Weight", "Culmen", "Hallux", "Tail", "StandardTail", "Tarsus", "Crop")
+
+# Group the data by Hawk species and count missing values for selected columns
+missing_summary_table <- Hawks %>%
+  group_by(Species) %>%
+  summarize(
+    across(
+      all_of(selected_columns),
+      list(missing_count = ~sum(is.na(.)))
+    ),
+    .groups = "drop"
+  )
+
+# Print the missing value summary table
+print(missing_summary_table)
+
+```
+
+## 2.1(Q1)
+library(dplyr)
+library(purrr)
+## 2.1(Q2)
+```{R}
+impute_by_median <- function(x) {
+  median_x <- median(x, na.rm = TRUE)  # Compute the median of x
+  impute_f <- function(z) {  # Coordinate-wise imputation
+    if (is.na(z)) {
+      return(median_x)  # If z is NA, replace it with the median
+    } else {
+      return(z)  # Otherwise, leave it in place
+    }
+  }
+  return(map_dbl(x, impute_f))  # Apply the map function to impute across the vector
+}
+v<-c(1,2,NA,4)
+impute_by_median(v)
+
+```
+## 2.1(Q3)
+```{R}
+n <- 101  # Number of data points
+x <- seq(0, 10, by = 0.1)  # Generate the sequence for x
+y <- 5 * x + 1  # Generate the sequence for y based on the given formula
+df_xy <- data.frame(x, y)  # Create the data frame
+df_xy %>% head(5)
+
+```
+## 2.1(Q4)
+```{R}
+# Function to generate missing values based on index
+sometimes_missing <- function(index, value) {
+  if (index %% 5 == 0) {
+    return(NA)
+  } else {
+    return(value)
+  }
+}
+
+# Generate the data frame with missing data
+df_xy_missing <- data.frame(
+  x = seq(0, 10, by = 0.1),
+  y = 5 * seq(0, 10, by = 0.1) + 1
+)
+
+# Apply the sometimes_missing function to create missing values in y
+df_xy_missing$y <- mapply(sometimes_missing, 1:nrow(df_xy_missing), df_xy_missing$y)
+
+# Check the first ten rows of the data frame
+head(df_xy_missing, 10)
+
+
+```
+## 2.1(Q5)
+```{R}
+# Function to impute missing values with the median
+impute_by_median <- function(x) {
+  median_x <- median(x, na.rm = TRUE)
+  return(ifelse(is.na(x), median_x, x))
+}
+
+# Create df_xy_imputed by applying impute_by_median to the y column of df_xy_missing
+df_xy_imputed <- df_xy_missing %>%
+  mutate(y = impute_by_median(y))
+
+# Check the first few rows of the df_xy_imputed data frame
+head(df_xy_imputed)
+```
+
+## 2.2
+```{R}
+
+library(readxl)
+library(dplyr)
+library(tidyr)
+
+# Read the "Wins" sheet from the Excel file
+file_path <- "C:/Users/dell/Desktop/Bristol/RStudio/RStudio/week2/HockeyLeague.xlsx"
+wins_data_frame <- read_excel(file_path, sheet = "Wins")
+
+# Transform the data into a tidy format
+wins_tidy <- wins_data_frame %>% 
+  pivot_longer(cols = -Team, names_to = "Year", values_to = "Wins_Total") %>%
+  separate(Wins_Total, into = c("Wins", "Total"), sep = " of ") %>%
+  mutate(Year = as.integer(Year),
+         Wins = as.integer(Wins),
+         Total = as.integer(Total))
+
+# Check dimensions and inspect the top 5 rows
+print(dim(wins_tidy))
+print(head(wins_tidy, 5))
+
+```
+## 2.2(Q1)
+```{R}
+# Read the "Losses" sheet from the Excel file
+losses_data_frame <- read_excel(file_path, sheet = "Losses")
+
+# Transform the data into a tidy format
+losses_tidy <- losses_data_frame %>% 
+  pivot_longer(cols = -Team, names_to = "Year", values_to = "Losses_Total") %>%
+  separate(Losses_Total, into = c("Losses", "Total"), sep = " of ") %>%
+  mutate(Year = as.integer(Year),
+         Losses = as.integer(Losses),
+         Total = as.integer(Total))
+
+# Check dimensions and inspect the top 5 rows
+print(dim(losses_tidy))
+print(head(losses_tidy, 5))
+
+
+```
+```{R}
+
+# Set your folder path and file name
+folder_path <- "C:/Users/dell/Desktop/Bristol/RStudio/RStudio/week2/"
+file_name <- "HockeyLeague.xlsx"
+file_path <- paste(folder_path, file_name, sep="")
+
+# Read the "Losses" sheet from the Excel file
+losses_data_frame <- read_excel(file_path, sheet = "Losses")
+
+# Rename the columns to remove spaces and make them more descriptive
+losses_data_frame <- losses_data_frame %>%
+  rename_with(~gsub("\\s", "_", .), -Team)
+
+# Pivot the data to long format
+losses_tidy <- losses_data_frame %>%
+  pivot_longer(cols = -Team, names_to = "Year", values_to = "Losses_Total")
+
+# Separate the "Losses_Total" column into "Losses" and "Total" columns
+losses_tidy <- losses_tidy %>%
+  separate(Losses_Total, into = c("Losses", "Total"), sep = " of ", convert = TRUE)
+
+# Change the data types of columns
+losses_tidy <- losses_tidy %>%
+  mutate(
+    Team = as.character(Team),
+    Year = as.integer(Year),
+    Losses = as.integer(Losses),
+    Total = as.integer(Total)
+  )
+
+# Check the dimensions and first five rows of the tidy data frame
+dim(losses_tidy)
+head(losses_tidy, 5)
+
+
+```
+## 2.2(Q3)
+```{R}
+# Combine wins_tidy and losses_tidy
+hockey_df <- wins_tidy %>%
+  inner_join(losses_tidy, by = c("Team", "Year", "Total")) %>%
+  mutate(Draws = Total - Wins - Losses,
+         Wins_rt = Wins / Total,
+         Losses_rt = Losses / Total,
+         Draws_rt = Draws / Total) %>%
+  select(Team, Year, Wins, Total, Losses, Draws, Wins_rt, Losses_rt, Draws_rt)
+
+# Display the top 5 rows
+print(head(hockey_df, 5))
+
+
+```
+## 2.2(Q4)
+```{R}
+summary_df <- hockey_df %>%
+  group_by(Team) %>%
+  summarise(W_md = round(median(Wins_rt), 3),
+            W_mn = round(mean(Wins_rt), 3),
+            L_md = round(median(Losses_rt), 3),
+            L_mn = round(mean(Losses_rt), 3),
+            D_md = round(median(Draws_rt), 3),
+            D_mn = round(mean(Draws_rt), 3)) %>%
+  arrange(desc(W_md))
+
+# Display the summary data frame
+print(summary_df)
+
+```
+
+## 3 (Q1)
+```{R}
+# Load the ggplot2 library
+install.packages("ggplot2")
+library(ggplot2)
+
+# Filter the data for Ducks
+ducks_data <- wins_tidy %>% filter(Team == "Ducks")
+
+# Create the histogram
+ggplot(ducks_data, aes(x = Wins)) +
+  geom_histogram(binwidth = 3, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Histogram of Wins for Ducks",
+       x = "Number of Wins",
+       y = "Count") +
+  theme_minimal()
+```
+
+## 3 (Q2)
+```{R}
+# Density plot with adjust = 0.5
+p1 <- ggplot(ducks_data, aes(x = Wins)) +
+  geom_density(adjust = 0.5, fill = "blue", alpha = 0.7) +
+  labs(title = "Density Plot of Wins for Ducks (adjust=0.5)",
+       x = "Number of Wins",
+       y = "Density") +
+  theme_minimal()
+
+# Density plot with adjust = 2
+p2 <- ggplot(ducks_data, aes(x = Wins)) +
+  geom_density(adjust = 2, fill = "red", alpha = 0.7) +
+  labs(title = "Density Plot of Wins for Ducks (adjust=2)",
+       x = "Number of Wins",
+       y = "Density") +
+  theme_minimal()
+
+# Display the plots
+print(p1)
+print(p2)
+
+```
+
+## 3 (Q3)
+```{R}
+# Reshape the wins_tidy dataframe
+wins_teams <- wins_tidy %>%
+  select(Year, Team, Wins) %>%
+  pivot_wider(names_from = Team, values_from = Wins)
+
+# Display the first 10 rows of wins_teams
+print(head(wins_teams, 10))
+
+# Create the scatter plot
+scatter_plot <- ggplot(wins_teams, aes(x = Ducks, y = Eagles)) +
+  geom_point(aes(color = Year), size = 3, alpha = 0.7) +
+  labs(title = "Scatter Plot of Wins: Ducks vs. Eagles",
+       x = "Ducks Wins",
+       y = "Eagles Wins") +
+  theme_minimal() +
+  scale_color_continuous(name = "Year")
+
+# Display the scatter plot
+print(scatter_plot)
+
+```
