@@ -1,0 +1,449 @@
+---
+title: "Assignment 3"
+author: "Xingyu Wang"
+date: "2023-10-13"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Exploratory data analysis
+```{r}
+library(tidyverse)
+library(Stat2Data)
+data("Hawks")
+```
+
+## 1.1 (Q1) 
+```{r}
+# Creating the HawksTail vector
+HawksTail <- Hawks$Tail
+
+# Display the first few elements of the vector
+head(HawksTail) 
+# Output: [1] 219 221 235 220 157 230
+
+# Compute the sample mean and sample median
+sample_mean <- mean(HawksTail, na.rm = TRUE)  # using na.rm = TRUE to handle any NA values
+sample_median <- median(HawksTail, na.rm = TRUE) 
+
+# Display the sample mean and sample median
+sample_mean
+sample_median
+
+```
+
+
+## 1.2 (Q1)
+```{r}
+# Using summarise() to compute mean, trimmed mean, and median for Wing and Weight columns
+result <- Hawks %>%
+  summarise(
+    Wing_mean = mean(Wing, na.rm = TRUE),
+    Wing_t_mean = mean(Wing, trim = 0.5, na.rm = TRUE),  # trimmed mean with q=0.5
+    Wing_med = median(Wing, na.rm = TRUE),
+    Weight_mean = mean(Weight, na.rm = TRUE),
+    Weight_t_mean = mean(Weight, trim = 0.5, na.rm = TRUE),  # trimmed mean with q=0.5
+    Weight_med = median(Weight, na.rm = TRUE)
+  )
+
+# Display the result
+print(result)
+
+```
+## 1.2 (Q2)
+```{r}
+
+# Grouping by Species and then using summarise() to compute mean, trimmed mean, and median
+grouped_result <- Hawks %>%
+  group_by(Species) %>%
+  summarise(
+    Wing_mean = mean(Wing, na.rm = TRUE),
+    Wing_t_mean = mean(Wing, trim = 0.5, na.rm = TRUE),  # trimmed mean with q=0.5
+    Wing_med = median(Wing, na.rm = TRUE),
+    Weight_mean = mean(Weight, na.rm = TRUE),
+    Weight_t_mean = mean(Weight, trim = 0.5, na.rm = TRUE),  # trimmed mean with q=0.5
+    Weight_med = median(Weight, na.rm = TRUE)
+  )
+
+# Display the grouped result
+print(grouped_result)
+
+```
+....
+
+## 1.3 (Q1)
+<div style="height: 200px;"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+a <- 2
+b <- 3
+
+transformed_mean <- mean(HawksTail * a + b)
+calculated_mean <- a * mean(HawksTail) + b
+
+# Compare the two means:
+transformed_mean
+calculated_mean
+
+
+```
+
+## 1,3 (Q2)
+<div style="height: 200px;"></div>
+
+
+
+
+
+
+
+
+
+```{r}
+transformed_variance <- var(HawksTail * a + b)
+calculated_variance <- a^2 * var(HawksTail)
+
+transformed_sd <- sd(HawksTail * a + b)
+calculated_sd <- a * sd(HawksTail)
+
+# Compare the variance and standard deviation:
+transformed_variance
+calculated_variance
+
+transformed_sd
+calculated_sd
+
+```
+....
+
+## 1.4
+```{r}
+hal<-Hawks$Hallux # Extract the vector of hallux lengths
+hal<-hal[!is.na(hal)] # Remove any nans
+outlier_val<-100
+num_outliers<-10
+corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
+mean(hal)
+
+mean(corrupted_hal)
+
+num_outliers_vect <- seq(0,1000)
+means_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+means_vect <- c(means_vect, mean(corrupted_hal))
+}
+
+```
+
+## 1.4 (Q1)
+```{r}
+num_outliers_vect <- seq(0,1000)
+medians_vect <- c()
+
+for(num_outliers in num_outliers_vect){
+  corrupted_hal <- c(hal, rep(outlier_val, times=num_outliers))
+  medians_vect <- c(medians_vect, median(corrupted_hal))
+}
+
+```
+## 1.4 (Q2)
+```{r}
+num_outliers_vect <- seq(0,1000)
+t_means_vect <- c()
+
+for(num_outliers in num_outliers_vect){
+  corrupted_hal <- c(hal, rep(outlier_val, times=num_outliers))
+  t_means_vect <- c(t_means_vect, mean(corrupted_hal, trim = 0.1))
+}
+
+```
+## 1.4 (Q3)
+```{r}
+# Combining into a dataframe
+df_means_medians <- data.frame(
+  num_outliers=num_outliers_vect, 
+  mean=means_vect,
+  t_mean=t_means_vect, 
+  median=medians_vect
+)
+
+# Reshape data for plotting
+df_long <- df_means_medians %>% 
+  pivot_longer(
+    cols = -num_outliers, 
+    names_to = "statistic", 
+    values_to = "value"
+  )
+
+# Plotting
+ggplot(df_long, aes(x=num_outliers, y=value, color=statistic)) + 
+  geom_line() + 
+  labs(title="Effect of Outliers on Location Estimators", 
+       x="# of Outliers", 
+       y="Value of Location Estimator") +
+  theme_minimal()
+
+```
+
+## 1.5(Q1)
+```{r}
+# Plotting the data
+ggplot(Hawks, aes(x=Species, y=Weight)) + 
+  geom_boxplot(outlier.color = "black", outlier.shape = 16) +
+  labs(title="Distribution of Hawk Weights by Species", 
+       x="Species", 
+       y="Weight (g)") +
+  theme_minimal()
+
+```
+## 1.5(Q2)
+```{r}
+# Grouping by species and computing quantiles
+quantiles_df <- Hawks %>%
+  group_by(Species) %>%
+  summarise(
+    quantile025 = quantile(Weight, 0.25, na.rm = TRUE),
+    quantile050 = quantile(Weight, 0.50, na.rm = TRUE),
+    quantile075 = quantile(Weight, 0.75, na.rm = TRUE)
+  )
+
+print(quantiles_df)
+
+```
+quantile025 corresponds to the lower hinge (the bottom of the box) of the boxplot.
+quantile050 corresponds to the median (the line inside the box) of the boxplot.
+quantile075 corresponds to the upper hinge (the top of the box) of the boxplot.
+## 1.5(Q3)
+```{r}
+num_outliers <- function(sample_vector) {
+  # Removing NA values
+  sample_vector <- sample_vector[!is.na(sample_vector)]
+  
+  # Calculating the quantiles
+  q25 <- quantile(sample_vector, 0.25)
+  q75 <- quantile(sample_vector, 0.75)
+  
+  # Calculating the Interquartile Range (IQR)
+  IQR <- q75 - q25
+  
+  # Finding outliers based on the provided conditions
+  lower_bound <- q25 - 1.5 * IQR
+  upper_bound <- q75 + 1.5 * IQR
+  
+  outliers <- sample_vector[sample_vector < lower_bound | sample_vector > upper_bound]
+  
+  return(length(outliers))
+}
+
+# Testing the function
+num_outliers( c(0, 40, 60, 185))
+
+```
+## 1.5(Q4)
+```{r}
+outliers_by_species <- Hawks %>%
+  group_by(Species) %>%
+  summarise(
+    num_of_outliers = num_outliers(Weight)
+  )
+
+print(outliers_by_species)
+
+```
+## 1.6(Q1)
+```{r}
+# Compute covariance
+cov_weight_wing <- cov(Hawks$Weight, Hawks$Wing, use = "complete.obs")
+
+# Compute correlation
+cor_weight_wing <- cor(Hawks$Weight, Hawks$Wing, use = "complete.obs")
+
+cat("Covariance between Weight and Wing:", cov_weight_wing, "\n")
+cat("Correlation between Weight and Wing:", cor_weight_wing, "\n")
+
+```
+## 1.6(Q2)
+```{r}
+# Assuming you have a dataframe Hawks with columns Weight and Wing
+
+a <- 2.4
+b <- 7.1
+c <- -1
+d <- 3
+
+# Creating the transformed variables
+Hawks$Weight_transformed <- a * Hawks$Weight + b
+Hawks$Wing_transformed <- c * Hawks$Wing + d
+
+# Computing covariance and correlation for transformed variables
+cov_transformed <- cov(Hawks$Weight_transformed, Hawks$Wing_transformed, use = "complete.obs")
+cor_transformed <- cor(Hawks$Weight_transformed, Hawks$Wing_transformed, use = "complete.obs")
+
+# Displaying the results
+cat("Covariance of transformed variables:", cov_transformed, "\n")
+cat("Correlation of transformed variables:", cor_transformed, "\n")
+
+```
+## 2.1(Q1)
+1. Random Experiment: A random experiment is an experiment or a process for which the outcome cannot be predicted with certainty.
+2. Sample Space:
+The sample space, often denoted as S or Ω, refers to the set of all possible outcomes of a random experiment. It encompasses every conceivable result for the given experiment
+3. Event: An event is any subset of the sample space. It represents a specific set of outcomes of a random experiment that we might be interested in. 
+
+## 2.1 (Q2)
+<div style="height: 200px;"></div>
+
+
+
+
+
+
+
+
+
+
+
+## 2.2 (Q1)
+<div style="height: 200px;"></div>
+
+## 2.2 (Q2)
+<div style="height: 200px;"></div>
+
+
+## 2.2 (Q2)
+<div style="height: 200px;"></div>
+
+## 2.2 (Q3)
+<div style="height: 200px;"></div>
+
+## 2.2 (Q4)
+<div style="height: 200px;"></div>
+
+## 2.2 (Q5)
+<div style="height: 200px;"></div>
+
+
+## 3 (Q1)
+```{r}
+# Load the required libraries
+library(ggplot2)
+
+# Create the density plot
+ggplot(data = Hawks, aes(x = Tail, fill = Species)) + 
+  geom_density(alpha = 0.5) + 
+  labs(title = "Density plot of Hawk Tail Lengths by Species",
+       x = "Tail (mm)",
+       y = "Density") +
+  theme_minimal()
+
+
+```
+## 3 (Q2)
+```{r}
+# Load the required libraries
+library(ggplot2)
+
+# Create the violin plot
+ggplot(data = Hawks, aes(x = Species, y = Tail, fill = Species)) + 
+  geom_violin() + 
+  labs(title = "Violin plot of Hawk Tail Lengths",
+       x = "Species",
+       y = "Tail (mm)") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set1")
+
+```
+## 3 (Q3)
+```{r}
+# Define the custom shapes and colors for species
+hawks_shapes <- c(CH = 16, RT = 17, SS = 15)  # 16: circle, 17: triangle, 15: square
+hawks_colors <- c(CH = "red", RT = "green", SS = "blue")
+
+# Plot
+ggplot(Hawks, aes(x = Tail, y = Weight, shape = Species, color = Species)) +
+  geom_point(aes(shape = Species, color = Species), size = 3) +
+  scale_shape_manual(values = hawks_shapes) +
+  scale_color_manual(values = hawks_colors) +
+  labs(title = "Tail vs. Weight for different Hawks species",
+       x = "Tail (mm)",
+       y = "Weight",
+       shape = "Species",
+       color = "Species")
+
+
+```
+## 3 (Q4)
+```{r}
+
+# Define the custom shapes and colors for species
+hawks_shapes <- c(CH = 16, RT = 17, SS = 15)  # 16: circle, 17: triangle, 15: square
+hawks_colors <- c(CH = "red", RT = "green", SS = "blue")
+
+# Plot
+ggplot(Hawks, aes(x = Tail, y = Weight, shape = Species, color = Species)) +
+  geom_point(aes(shape = Species, color = Species), size = 3) +
+  geom_smooth(method = "lm", se = TRUE, aes(color = Species), show.legend = FALSE) + 
+  scale_shape_manual(values = hawks_shapes) +
+  scale_color_manual(values = hawks_colors) +
+  facet_wrap(~ Species, scales = "free") +
+  labs(title = "Tail vs. Weight for different Hawks species",
+       x = "Tail (mm)",
+       y = "Weight",
+       shape = "Species",
+       color = "Species")
+
+```
+.....
+## 3 (Q5)
+```{r}
+
+# Find the heaviest hawk
+heaviest_hawk <- Hawks %>%
+  filter(Weight == max(Weight, na.rm = TRUE)) %>%
+  select(Tail, Weight, Species) %>%
+  top_n(1)
+
+tail_heaviest <- heaviest_hawk$Tail
+weight_heaviest <- heaviest_hawk$Weight
+
+# Define the custom shapes and colors for species
+hawks_shapes <- c(CH = 16, RT = 17, SS = 15)  # 16: circle, 17: triangle, 15: square
+hawks_colors <- c(CH = "red", RT = "green", SS = "blue")
+
+# Plot
+ggplot(Hawks, aes(x = Tail, y = Weight, shape = Species, color = Species)) +
+  geom_point(aes(shape = Species, color = Species), size = 3) +
+  scale_shape_manual(values = hawks_shapes) +
+  scale_color_manual(values = hawks_colors) +
+  labs(title = "Tail vs. Weight for different Hawks species",
+       x = "Tail (mm)",
+       y = "Weight",
+       shape = "Species",
+       color = "Species") +
+  geom_segment(aes(x = tail_heaviest, xend = tail_heaviest + 10, 
+                   y = weight_heaviest, yend = weight_heaviest + 100), 
+               arrow = arrow(type = "closed", length = unit(0.2, "inches")), color = "black") +
+  annotate("text", x = tail_heaviest + 25, y = weight_heaviest + 150, 
+           label = "heaviest hawk", color = "black")
+
+
+```
+
+
